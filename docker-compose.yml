@@ -4,8 +4,8 @@ services:
   redis:
     image: redis:7
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    networks:
+      - bot-net
 
   worker:
     build: .
@@ -16,9 +16,16 @@ services:
         REDIS_URL: redis://redis:6379
     depends_on:
       - redis
+    networks:
+      - bot-net
     volumes:
       - worker-session:/app/.wwebjs_auth
       - worker-chrome:/app/chrome-data
+
+networks:
+  bot-net:
+    name: bot-net
+    external: true
 
 volumes:
   worker-session:
