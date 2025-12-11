@@ -23,6 +23,10 @@ export async function createClient() {
         }),
         puppeteer: {
             headless: true,
+            executablePath:
+                process.env.CHROMIUM_PATH ||
+                process.env.PUPPETEER_EXECUTABLE_PATH ||
+                "/usr/bin/chromium-browser",
             args: [
                 `--user-data-dir=${join(process.cwd(), config.userDataDir)}`,
                 "--no-sandbox",
