@@ -1,9 +1,12 @@
-FROM node:18-alpine AS base
+FROM node:18-bookworm AS base
 WORKDIR /app
 
-RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
+# Chrome deps + redis-tools (para teste eventual)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends chromium redis-tools ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 COPY package*.json ./
 RUN npm ci --omit=dev

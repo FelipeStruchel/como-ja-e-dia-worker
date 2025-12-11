@@ -12,7 +12,7 @@ async function main() {
 
     // Info: qual Redis estamos usando
     log(
-        `Redis URL: ${process.env.REDIS_URL || "(default redis://localhost:6379)"} | host=${process.env.REDIS_HOST || "redis"} port=${process.env.REDIS_PORT || "6379"}`,
+        `Redis connection -> host=${process.env.REDIS_HOST || "redis"} port=${process.env.REDIS_PORT || "6379"} (env URL: ${process.env.REDIS_URL || "n/a"})`,
         "info"
     );
 
