@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import WhatsappWebPkg from "whatsapp-web.js";
 import QrCodeTerminal from "qrcode-terminal";
+import { promises as fs } from "fs";
 import { config } from "./config.js";
 import { log } from "./logger.js";
 
@@ -14,8 +15,24 @@ function ensureDirs() {
     if (!existsSync(userDataDir)) mkdirSync(userDataDir, { recursive: true });
 }
 
+async function clearChromeLocks() {
+    const targets = [
+        join(process.cwd(), config.userDataDir, "Default"),
+        join(process.cwd(), config.sessionPath, "Default"),
+    ];
+    for (const base of targets) {
+        for (const fname of ["SingletonLock", "SingletonCookie", "SingletonSocket"]) {
+            try {
+                const f = join(base, fname);
+                await fs.rm(f, { force: true });
+            } catch (_) {}
+        }
+    }
+}
+
 export async function createClient() {
     ensureDirs();
+    await clearChromeLocks();
 
     const client = new Client({
         authStrategy: new LocalAuth({
