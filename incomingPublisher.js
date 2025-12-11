@@ -3,6 +3,8 @@ import { incomingQueue } from "./queues.js";
 
 export async function publishIncoming(msg) {
     try {
+        if (!msg || typeof msg.getChat !== "function") return;
+
         const chat = await msg.getChat();
         const participants = chat?.participants
             ? chat.participants
