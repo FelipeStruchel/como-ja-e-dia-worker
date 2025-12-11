@@ -11,5 +11,8 @@ export function log(message, type = "info", meta = null) {
         }[type] || "[INFO]";
     const line = `${ts} ${tag} ${message}`;
     console.log(line);
-    sendLogToIngest({ source: "worker", level: type, message, meta }).catch(() => {});
+    // Só tenta enviar para ingest se não for erro de ingestão para evitar loop
+    if (!(typeof message === "string" && message.includes("Falha ao enviar log para ingest"))) {
+        sendLogToIngest({ source: "worker", level: type, message, meta }).catch(() => {});
+    }
 }

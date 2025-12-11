@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import WhatsappWebPkg from "whatsapp-web.js";
+import QrCodeTerminal from "qrcode-terminal";
 import { config } from "./config.js";
 import { log } from "./logger.js";
 
@@ -42,8 +43,7 @@ export async function createClient() {
     client.on("qr", (qr) => {
         log("QR Code gerado! Escaneie com seu WhatsApp:", "info");
         log("----------------------------------------", "info");
-        // eslint-disable-next-line no-console
-        console.log(qr);
+        QrCodeTerminal.generate(qr, { small: true });
         log("----------------------------------------", "info");
     });
 
