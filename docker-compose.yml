@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+        REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - worker-session:/app/.wwebjs_auth
+      - worker-chrome:/app/chrome-data
+
+volumes:
+  worker-session:
+  worker-chrome:

@@ -1,0 +1,31 @@
+# Node dependencies and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Builds and coverage
+dist/
+build/
+coverage/
+.nyc_output/
+
+# WhatsApp session / browser data
+.wwebjs_auth/
+chrome-data/
+
+# Editor and OS noise
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
