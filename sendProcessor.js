@@ -1,8 +1,10 @@
 import axios from "axios";
 import mime from "mime-types";
-import { MessageMedia } from "whatsapp-web.js";
+import WhatsappWebPkg from "whatsapp-web.js";
 import { config } from "./config.js";
 import { log } from "./logger.js";
+
+const { MessageMedia } = WhatsappWebPkg;
 
 async function downloadMediaToMessageMedia(url) {
     const resp = await axios.get(url, { responseType: "arraybuffer" });
