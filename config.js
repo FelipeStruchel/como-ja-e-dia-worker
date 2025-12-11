@@ -6,8 +6,6 @@ const __dirname = join(__filename, "..");
 
 export const config = {
     redisUrl: process.env.REDIS_URL || "redis://redis:6379",
-    redisHost: process.env.REDIS_HOST || "redis",
-    redisPort: parseInt(process.env.REDIS_PORT || "6379", 10),
     sendQueueName: process.env.SEND_QUEUE_NAME || "send-messages",
     incomingQueueName: process.env.INCOMING_QUEUE_NAME || "incoming-messages",
     groupId:

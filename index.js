@@ -11,7 +11,10 @@ async function main() {
     const client = await createClient();
 
     // Info: qual Redis estamos usando
-    log(`Redis URL: ${process.env.REDIS_URL || "(default redis://localhost:6379)"}`, "info");
+    log(
+        `Redis URL: ${process.env.REDIS_URL || "(default redis://localhost:6379)"} | host=${process.env.REDIS_HOST || "redis"} port=${process.env.REDIS_PORT || "6379"}`,
+        "info"
+    );
 
     client.on("message", async (msg) => {
         await publishIncoming(msg);

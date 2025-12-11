@@ -2,8 +2,7 @@ import { Queue } from "bullmq";
 import { config } from "./config.js";
 
 const connection = {
-    host: config.redisHost,
-    port: config.redisPort,
+    url: config.redisUrl,
 };
 
 export const incomingQueue = new Queue(config.incomingQueueName, {
