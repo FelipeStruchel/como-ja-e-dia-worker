@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
-import { config } from "./config.js";
 import { log } from "./logger.js";
 import { redisConnection, sendQueueName } from "./queues.js";
 import { createClient } from "./whatsapp.js";
@@ -9,12 +8,6 @@ import { processSendJob } from "./sendProcessor.js";
 
 async function main() {
     const client = await createClient();
-
-    // Info: qual Redis estamos usando
-    log(
-        `Redis connection -> host=${process.env.REDIS_HOST || "redis"} port=${process.env.REDIS_PORT || "6379"} (env URL: ${process.env.REDIS_URL || "n/a"})`,
-        "info"
-    );
 
     client.on("message", async (msg) => {
         await publishIncoming(msg);
