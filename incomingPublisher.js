@@ -34,7 +34,10 @@ export async function publishIncoming(msg) {
             body: msg.body || "",
             timestamp: msg.timestamp ? msg.timestamp * 1000 : Date.now(),
             fromMe: !!msg.fromMe,
-            isGroup: !!msg.isGroupMsg,
+            isGroup:
+                !!msg.isGroupMsg ||
+                !!(chat && chat.isGroup) ||
+                !!((msg.from || "").endsWith("@g.us")),
             participants,
             recentMessages,
         };
@@ -42,7 +45,6 @@ export async function publishIncoming(msg) {
             removeOnComplete: true,
             removeOnFail: 50,
         });
-        log(`Mensagem recebida enfileirada (${payload.id || "sem id"})`, "info");
     } catch (err) {
         log(`Falha ao enfileirar mensagem recebida: ${err.message}`, "error");
     }

@@ -19,9 +19,24 @@ async function buildMessage(jobData) {
     if (type === "text") {
         return { payload: content };
     }
-    const media = content.startsWith("http")
-        ? await downloadMediaToMessageMedia(content)
-        : MessageMedia.fromFilePath(content);
+    let source = content || "";
+    if (source.startsWith("http")) {
+        // URL completa
+        const media = await downloadMediaToMessageMedia(source);
+        const opts = caption ? { caption } : {};
+        return { payload: media, opts };
+    }
+    // Se vier relativo, prefixa BACKEND_PUBLIC_URL se existir
+    if (source.startsWith("/") && process.env.BACKEND_PUBLIC_URL) {
+        const base = process.env.BACKEND_PUBLIC_URL.replace(/\/+$/, "");
+        const url = `${base}${source}`;
+        const media = await downloadMediaToMessageMedia(url);
+        const opts = caption ? { caption } : {};
+        return { payload: media, opts };
+    }
+    // Caso contrário, tenta como caminho de arquivo (strip query se tiver)
+    const localPath = source.split("?")[0];
+    const media = MessageMedia.fromFilePath(localPath);
     const opts = caption ? { caption } : {};
     return { payload: media, opts };
 }
