@@ -1,5 +1,6 @@
 import axios from "axios";
 import mime from "mime-types";
+import fs from "fs";
 import WhatsappWebPkg from "whatsapp-web.js";
 import { config } from "./config.js";
 import { log } from "./logger.js";
@@ -26,9 +27,16 @@ async function buildMessage(jobData) {
         const opts = caption ? { caption } : {};
         return { payload: media, opts };
     }
-    // Se vier relativo, prefixa BACKEND_PUBLIC_URL se existir
-    if (source.startsWith("/") && process.env.BACKEND_PUBLIC_URL) {
-        const base = process.env.BACKEND_PUBLIC_URL.replace(/\/+$/, "");
+    // Se vier relativo
+    if (source.startsWith("/")) {
+        const localPath = source.split("?")[0];
+        if (fs.existsSync(localPath)) {
+            const media = MessageMedia.fromFilePath(localPath);
+            const opts = caption ? { caption } : {};
+            return { payload: media, opts };
+        }
+        const base =
+            (process.env.BACKEND_PUBLIC_URL || "http://backend:3000").replace(/\/+$/, "");
         const url = `${base}${source}`;
         const media = await downloadMediaToMessageMedia(url);
         const opts = caption ? { caption } : {};
