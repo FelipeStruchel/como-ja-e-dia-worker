@@ -5,6 +5,7 @@ import { redisConnection, sendQueueName } from "./queues.js";
 import { createClient } from "./whatsapp.js";
 import { publishIncoming } from "./incomingPublisher.js";
 import { processSendJob } from "./sendProcessor.js";
+import { startContextWorker } from "./contextProcessor.js";
 
 async function main() {
     const client = await createClient();
@@ -12,6 +13,8 @@ async function main() {
     client.on("message", async (msg) => {
         await publishIncoming(msg);
     });
+
+    startContextWorker(client);
 
     const sendWorker = new Worker(
         sendQueueName,

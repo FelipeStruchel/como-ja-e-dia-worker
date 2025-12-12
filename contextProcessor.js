@@ -1,0 +1,77 @@
+import axios from "axios";
+import { log } from "./logger.js";
+import { groupContextQueue, redisConnection } from "./queues.js";
+import { config } from "./config.js";
+import { Worker } from "bullmq";
+
+async function fetchContext({ client, groupId }) {
+    const chat = await client.getChatById(groupId);
+    const participants =
+        chat?.participants ||
+        chat?.groupMetadata?.participants ||
+        chat?.groupMetadata?.members ||
+        [];
+
+    const members = [];
+    for (const p of participants) {
+        try {
+            const jid =
+                (typeof p === "string" && p) ||
+                p?._serialized ||
+                p?.id?._serialized ||
+                p?.id;
+            if (!jid) continue;
+            const contact = await client.getContactById(jid);
+            let profilePicUrl = "";
+            try {
+                profilePicUrl = await contact.getProfilePicUrl();
+            } catch (_) {}
+            members.push({
+                id: jid,
+                name: contact?.name || "",
+                pushname: contact?.pushname || "",
+                isAdmin: !!(p?.isAdmin || p?.isSuperAdmin),
+                profilePicUrl: profilePicUrl || "",
+            });
+        } catch (err) {
+            log(`context: erro ao coletar participante: ${err.message}`, "error");
+        }
+    }
+
+    const payload = {
+        groupId,
+        subject: chat?.name || "",
+        description: chat?.description || "",
+        members,
+    };
+
+    const ingestUrl =
+        (config.backendPublicUrl || process.env.BACKEND_PUBLIC_URL || "http://backend:3000") +
+        "/context/ingest";
+    const token = process.env.CONTEXT_INGEST_TOKEN || process.env.LOG_INGEST_TOKEN || "";
+
+    await axios.post(ingestUrl, payload, {
+        headers: {
+            "x-context-token": token,
+        },
+    });
+    log(`context: enviado para ingest ${members.length} membros do grupo ${groupId}`, "info");
+}
+
+export function startContextWorker(client) {
+    const worker = new Worker(
+        config.groupContextQueueName,
+        async (job) => {
+            const { groupId } = job.data || {};
+            if (!groupId) return;
+            await fetchContext({ client, groupId });
+        },
+        { connection: redisConnection }
+    );
+
+    worker.on("failed", (job, err) => {
+        log(`Job de contexto ${job?.id} falhou: ${err?.message}`, "error");
+    });
+
+    return worker;
+}

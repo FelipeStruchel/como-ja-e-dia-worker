@@ -10,6 +10,7 @@ export const config = {
     redisPort: parseInt(process.env.REDIS_PORT || "6379", 10),
     sendQueueName: process.env.SEND_QUEUE_NAME || "send-messages",
     incomingQueueName: process.env.INCOMING_QUEUE_NAME || "incoming-messages",
+    groupContextQueueName: process.env.GROUP_CONTEXT_QUEUE_NAME || "group-context",
     backendPublicUrl: process.env.BACKEND_PUBLIC_URL || "",
     groupId:
         process.env.GROUP_ID ||

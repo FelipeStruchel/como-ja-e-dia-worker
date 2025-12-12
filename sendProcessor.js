@@ -61,7 +61,6 @@ export async function processSendJob({ client, job }) {
     if (Array.isArray(data.mentions) && data.mentions.length) {
         const contacts = [];
         for (const raw of data.mentions) {
-            console.log(raw);
             let id = null;
             if (typeof raw === "string") id = raw;
             else if (raw?._serialized) id = raw._serialized;
