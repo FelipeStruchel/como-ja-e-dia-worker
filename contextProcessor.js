@@ -12,6 +12,12 @@ async function fetchContext({ client, groupId }) {
         chat?.groupMetadata?.members ||
         [];
 
+    const idUser = (jid) => {
+        if (!jid) return "";
+        const parts = jid.toString().split("@")[0];
+        return parts || "";
+    };
+
     const members = [];
     for (const p of participants) {
         try {
@@ -28,15 +34,31 @@ async function fetchContext({ client, groupId }) {
                 // fallback: sem contato carregado
             }
             let profilePicUrl = "";
-            if (contact) {
-                try {
-                    profilePicUrl = await contact.getProfilePicUrl();
-                } catch (_) {}
-            }
+            try {
+                profilePicUrl =
+                    (await client.getProfilePicUrl(jid)) ||
+                    (contact ? await contact.getProfilePicUrl() : "");
+            } catch (_) {}
+            const name =
+                contact?.name ||
+                contact?.pushname ||
+                contact?.formattedName ||
+                contact?.shortName ||
+                contact?.number ||
+                contact?.id?.user ||
+                idUser(jid);
+            const pushname =
+                contact?.pushname ||
+                contact?.name ||
+                contact?.formattedName ||
+                contact?.shortName ||
+                contact?.number ||
+                contact?.id?.user ||
+                "";
             members.push({
                 id: jid,
-                name: contact?.name || "",
-                pushname: contact?.pushname || "",
+                name,
+                pushname,
                 isAdmin: !!(p?.isAdmin || p?.isSuperAdmin),
                 profilePicUrl: profilePicUrl || "",
             });
