@@ -52,7 +52,14 @@ export async function processSendJob({ client, job }) {
     if (data.replyTo) opts.quotedMessageId = data.replyTo;
     if (Array.isArray(data.mentions) && data.mentions.length) {
         const contacts = [];
-        for (const id of data.mentions) {
+        for (const raw of data.mentions) {
+            console.log(raw);
+            let id = null;
+            if (typeof raw === "string") id = raw;
+            else if (raw?._serialized) id = raw._serialized;
+            else if (raw?.id?._serialized) id = raw.id._serialized;
+            else if (raw?.id) id = raw.id;
+            if (!id) continue;
             try {
                 const c = await client.getContactById(id);
                 if (c) contacts.push(c);
