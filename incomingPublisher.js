@@ -6,8 +6,6 @@ export async function publishIncoming(msg) {
         if (!msg || typeof msg.getChat !== "function") return;
 
         const chat = await msg.getChat();
-        console.log(chat);
-        console.log(chat.participants)
         const rawParticipants =
             chat?.participants ||
             chat?.groupMetadata?.participants ||
