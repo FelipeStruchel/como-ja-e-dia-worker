@@ -21,11 +21,18 @@ async function fetchContext({ client, groupId }) {
                 p?.id?._serialized ||
                 p?.id;
             if (!jid) continue;
-            const contact = await client.getContactById(jid);
-            let profilePicUrl = "";
+            let contact = null;
             try {
-                profilePicUrl = await contact.getProfilePicUrl();
-            } catch (_) {}
+                contact = await client.getContactById(jid);
+            } catch (_) {
+                // fallback: sem contato carregado
+            }
+            let profilePicUrl = "";
+            if (contact) {
+                try {
+                    profilePicUrl = await contact.getProfilePicUrl();
+                } catch (_) {}
+            }
             members.push({
                 id: jid,
                 name: contact?.name || "",
