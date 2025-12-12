@@ -6,11 +6,20 @@ export async function publishIncoming(msg) {
         if (!msg || typeof msg.getChat !== "function") return;
 
         const chat = await msg.getChat();
-        const participants = chat?.participants
-            ? chat.participants
-                  .map((p) => p?.id?._serialized)
-                  .filter(Boolean)
-            : [];
+        const rawParticipants =
+            chat?.participants ||
+            chat?.groupMetadata?.participants ||
+            chat?.groupMetadata?.members ||
+            [];
+        const participants = (rawParticipants || [])
+            .map((p) => {
+                if (typeof p === "string") return p;
+                if (p?._serialized) return p._serialized;
+                if (p?.id?._serialized) return p.id._serialized;
+                if (p?.id) return p.id;
+                return null;
+            })
+            .filter(Boolean);
         let recentMessages = [];
         try {
             const fetched = await chat.fetchMessages({ limit: 50 });
