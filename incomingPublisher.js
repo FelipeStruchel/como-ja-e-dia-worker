@@ -20,6 +20,15 @@ export async function publishIncoming(msg) {
                 return null;
             })
             .filter(Boolean);
+        let author = msg.author || null;
+        try {
+            if (!author && typeof msg.getContact === "function") {
+                const c = await msg.getContact();
+                author = c?.id?._serialized || author;
+            }
+        } catch (_) {
+            // ignore
+        }
         let recentMessages = [];
         try {
             const fetched = await chat.fetchMessages({ limit: 50 });
@@ -41,7 +50,7 @@ export async function publishIncoming(msg) {
         const payload = {
             id: msg.id?._serialized || msg.id,
             from: msg.from,
-            author: msg.author || null,
+            author,
             body: msg.body || "",
             timestamp: msg.timestamp ? msg.timestamp * 1000 : Date.now(),
             fromMe: !!msg.fromMe,
