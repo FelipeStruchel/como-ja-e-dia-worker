@@ -18,6 +18,20 @@ async function fetchContext({ client, groupId }) {
         return parts || "";
     };
 
+    const bestDisplayName = (contact, jid) => {
+        const candidates = [
+            contact?.verifiedName,
+            contact?.formattedName,
+            contact?.pushname,
+            contact?.name,
+            contact?.shortName,
+            contact?.number,
+            contact?.id?.user,
+            idUser(jid),
+        ];
+        return candidates.find((c) => c && c.trim()) || "";
+    };
+
     const members = [];
     for (const p of participants) {
         try {
@@ -41,8 +55,9 @@ async function fetchContext({ client, groupId }) {
             } catch (_) {}
             const name =
                 contact?.name ||
-                contact?.pushname ||
+                contact?.verifiedName ||
                 contact?.formattedName ||
+                contact?.pushname ||
                 contact?.shortName ||
                 contact?.number ||
                 contact?.id?.user ||
@@ -55,10 +70,13 @@ async function fetchContext({ client, groupId }) {
                 contact?.number ||
                 contact?.id?.user ||
                 "";
+            const number = contact?.number || contact?.id?.user || idUser(jid);
             members.push({
                 id: jid,
                 name,
                 pushname,
+                displayName: bestDisplayName(contact, jid),
+                number,
                 isAdmin: !!(p?.isAdmin || p?.isSuperAdmin),
                 profilePicUrl: profilePicUrl || "",
             });
