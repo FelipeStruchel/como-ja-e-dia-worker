@@ -53,7 +53,7 @@ export async function publishIncoming(msg) {
             recentMessages,
         };
         await incomingQueue.add("incoming", payload, {
-            removeOnComplete: true,
+            removeOnComplete: 50,
             removeOnFail: 50,
         });
     } catch (err) {
