@@ -3,7 +3,6 @@ import { log } from "./logger.js";
 import { redisConnection } from "./queues.js";
 import { config } from "./config.js";
 import { Worker } from "bullmq";
-import { log } from "./logger.js";
 
 async function fetchContext({ client, groupId }) {
     const chat = await client.getChatById(groupId);
