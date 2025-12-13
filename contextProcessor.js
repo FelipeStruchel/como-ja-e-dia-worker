@@ -1,8 +1,9 @@
 import axios from "axios";
 import { log } from "./logger.js";
-import { groupContextQueue, redisConnection } from "./queues.js";
+import { redisConnection } from "./queues.js";
 import { config } from "./config.js";
 import { Worker } from "bullmq";
+import { log } from "./logger.js";
 
 async function fetchContext({ client, groupId }) {
     const chat = await client.getChatById(groupId);
@@ -44,8 +45,9 @@ async function fetchContext({ client, groupId }) {
             let contact = null;
             try {
                 contact = await client.getContactById(jid);
+                log(`context: contato detalhes ${JSON.stringify(contact)}`, "info");
             } catch (_) {
-                // fallback: sem contato carregado
+                log(`context: não foi possível obter contato para ${jid}`, "warn");
             }
             let profilePicUrl = "";
             try {
