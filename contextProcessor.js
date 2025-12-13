@@ -12,6 +12,16 @@ async function fetchContext({ client, groupId }) {
         chat?.groupMetadata?.members ||
         [];
 
+    let contactsIndex = new Map();
+    try {
+        const contacts = await client.getContacts();
+        contactsIndex = new Map(
+            contacts.map((c) => [c.id?._serialized || c.id || c.number || "", c])
+        );
+    } catch (err) {
+        log(`context: nao foi possivel carregar lista de contatos: ${err.message}`, "warn");
+    }
+
     const idUser = (jid) => {
         if (!jid) return "";
         const parts = jid.toString().split("@")[0];
@@ -32,6 +42,17 @@ async function fetchContext({ client, groupId }) {
         return candidates.find((c) => c && c.trim()) || "";
     };
 
+    const bestNameFromParticipant = (p) => {
+        const candidates = [
+            p?.notifyName,
+            p?.name,
+            p?.pushname,
+            p?.shortName,
+            p?.id?.user,
+        ];
+        return candidates.find((c) => c && c.trim()) || "";
+    };
+
     const members = [];
     for (const p of participants) {
         try {
@@ -41,19 +62,22 @@ async function fetchContext({ client, groupId }) {
                 p?.id?._serialized ||
                 p?.id;
             if (!jid) continue;
+
             let contact = null;
             try {
-                contact = await client.getContactById(jid);
-                log(`context: contato detalhes ${JSON.stringify(contact)}`, "info");
+                contact = contactsIndex.get(jid) || contactsIndex.get(idUser(jid));
+                if (!contact) contact = await client.getContactById(jid);
             } catch (_) {
-                log(`context: não foi possível obter contato para ${jid}`, "warn");
+                log(`context: nao foi possivel obter contato para ${jid}`, "warn");
             }
+
             let profilePicUrl = "";
             try {
                 profilePicUrl =
                     (await client.getProfilePicUrl(jid)) ||
                     (contact ? await contact.getProfilePicUrl() : "");
             } catch (_) {}
+
             const name =
                 contact?.name ||
                 contact?.verifiedName ||
@@ -62,6 +86,7 @@ async function fetchContext({ client, groupId }) {
                 contact?.shortName ||
                 contact?.number ||
                 contact?.id?.user ||
+                bestNameFromParticipant(p) ||
                 idUser(jid);
             const pushname =
                 contact?.pushname ||
@@ -70,13 +95,15 @@ async function fetchContext({ client, groupId }) {
                 contact?.shortName ||
                 contact?.number ||
                 contact?.id?.user ||
+                bestNameFromParticipant(p) ||
                 "";
-            const number = contact?.number || contact?.id?.user || idUser(jid);
+            const number = contact?.number || contact?.id?.user || p?.id?.user || idUser(jid);
+
             members.push({
                 id: jid,
                 name,
                 pushname,
-                displayName: bestDisplayName(contact, jid),
+                displayName: bestDisplayName(contact, jid) || bestNameFromParticipant(p),
                 number,
                 isAdmin: !!(p?.isAdmin || p?.isSuperAdmin),
                 profilePicUrl: profilePicUrl || "",
