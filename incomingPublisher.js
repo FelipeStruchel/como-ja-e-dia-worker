@@ -22,9 +22,16 @@ export async function publishIncoming(msg) {
             .filter(Boolean);
         let author = msg.author || null;
         try {
-            if (!author && typeof msg.getContact === "function") {
+            if (typeof msg.getContact === "function") {
                 const c = await msg.getContact();
-                author = c?.id?._serialized || author;
+                const contactId = c?.id?._serialized || null;
+                const contactNumber = c?.number || c?.id?.user || null;
+                // Se author vier em @lid, tente substituir por JID com c.us usando o número real
+                if (author && author.endsWith("@lid") && contactNumber) {
+                    author = `${contactNumber}@c.us`;
+                } else if (!author && (contactId || contactNumber)) {
+                    author = contactId || (contactNumber ? `${contactNumber}@c.us` : null);
+                }
             }
         } catch (_) {
             // ignore
