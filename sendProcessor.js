@@ -6,6 +6,11 @@ import { config } from "./config.js";
 import { log } from "./logger.js";
 
 const { MessageMedia } = WhatsappWebPkg;
+const mediaApiBase =
+    (process.env.MEDIA_BASE_URL || process.env.BACKEND_PUBLIC_URL || "http://backend:3000").replace(
+        /\/+$/,
+        ""
+    );
 
 async function downloadMediaToMessageMedia(url) {
     const resp = await axios.get(url, { responseType: "arraybuffer" });
@@ -49,6 +54,20 @@ async function buildMessage(jobData) {
     return { payload: media, opts };
 }
 
+async function cleanupMedia(cleanup) {
+    if (!cleanup?.filename || !cleanup?.type) return;
+    try {
+        const scope = cleanup.scope === "trigger" || cleanup.scope === "media_triggers" ? "trigger" : "media";
+        const url = `${mediaApiBase}/media/${cleanup.type}/${cleanup.filename}${
+            scope === "trigger" ? "?scope=trigger" : ""
+        }`;
+        await axios.delete(url);
+        log(`Cleanup de midia concluido: ${cleanup.filename}`, "info");
+    } catch (err) {
+        log(`Falha ao limpar midia ${cleanup?.filename || ""}: ${err?.message}`, "warn");
+    }
+}
+
 export async function processSendJob({ client, job }) {
     const data = job.data || {};
     const groupId = data.groupId || config.groupId;
@@ -75,5 +94,8 @@ export async function processSendJob({ client, job }) {
         if (contacts.length) opts.mentions = contacts;
     }
     await client.sendMessage(groupId, payload, opts);
+    if (data.cleanup) {
+        await cleanupMedia(data.cleanup);
+    }
     log(`Job ${job.id} enviado para ${groupId}`, "success");
 }
