@@ -68,6 +68,17 @@ async function cleanupMedia(cleanup) {
     }
 }
 
+async function cleanupPhrase(cleanup) {
+    if (!cleanup?.id) return;
+    try {
+        const url = `${mediaApiBase}/frases/by-id/${cleanup.id}`;
+        await axios.delete(url);
+        log(`Cleanup de frase concluido: ${cleanup.id}`, "info");
+    } catch (err) {
+        log(`Falha ao limpar frase ${cleanup?.id || ""}: ${err?.message}`, "warn");
+    }
+}
+
 export async function processSendJob({ client, job }) {
     const data = job.data || {};
     const groupId = data.groupId || config.groupId;
@@ -95,7 +106,11 @@ export async function processSendJob({ client, job }) {
     }
     await client.sendMessage(groupId, payload, opts);
     if (data.cleanup) {
-        await cleanupMedia(data.cleanup);
+        if (data.cleanup.type === "phrase") {
+            await cleanupPhrase(data.cleanup);
+        } else {
+            await cleanupMedia(data.cleanup);
+        }
     }
     log(`Job ${job.id} enviado para ${groupId}`, "success");
 }
