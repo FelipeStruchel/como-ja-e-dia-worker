@@ -3,6 +3,7 @@ import {
   useMultiFileAuthState,
   DisconnectReason,
   Browsers,
+  fetchLatestBaileysVersion,
   type WASocket,
   type WAMessage,
 } from 'baileys'
@@ -39,10 +40,12 @@ async function publishQr(qr: string): Promise<void> {
 
 async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<void> {
   const { state, saveCreds } = await useMultiFileAuthState(config.authStatePath)
+  const { version } = await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
+    version,
     auth: state,
-    browser: Browsers.ubuntu('Chrome'),
+    browser: Browsers.macOS('Safari'),
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
   })
