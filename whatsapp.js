@@ -1,14 +1,10 @@
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
 import WhatsappWebPkg from "whatsapp-web.js";
 import QrCodeTerminal from "qrcode-terminal";
 import { promises as fs } from "fs";
 import { config } from "./config.js";
 import { log } from "./logger.js";
-
-const execAsync = promisify(exec);
 
 const { Client, LocalAuth } = WhatsappWebPkg;
 
@@ -20,11 +16,28 @@ function ensureDirs() {
 }
 
 async function killExistingChrome() {
+    log("Verificando processos Chromium via /proc...", "info");
+    let killed = 0;
     try {
-        await execAsync("pkill -f chromium || true");
-        log("Processos Chromium anteriores encerrados.", "info");
-        await new Promise((r) => setTimeout(r, 800));
-    } catch (_) {}
+        const dirs = await fs.readdir("/proc");
+        for (const dir of dirs) {
+            if (!/^\d+$/.test(dir)) continue;
+            try {
+                const cmdline = await fs.readFile(`/proc/${dir}/cmdline`, "utf8");
+                if (cmdline.includes("chromium")) {
+                    const pid = parseInt(dir, 10);
+                    if (pid === process.pid) continue;
+                    process.kill(pid, "SIGKILL");
+                    killed++;
+                    log(`Chromium PID ${pid} encerrado.`, "info");
+                }
+            } catch (_) {}
+        }
+    } catch (err) {
+        log(`Erro ao varrer /proc: ${err.message}`, "warn");
+    }
+    if (killed === 0) log("Nenhum processo Chromium encontrado.", "info");
+    await new Promise((r) => setTimeout(r, 800));
 }
 
 async function clearChromeLocks() {
