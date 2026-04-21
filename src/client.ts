@@ -2,6 +2,7 @@ import {
   makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
+  Browsers,
   type WASocket,
   type WAMessage,
 } from 'baileys'
@@ -41,6 +42,7 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
 
   const sock = makeWASocket({
     auth: state,
+    browser: Browsers.ubuntu('Chrome'),
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
   })
