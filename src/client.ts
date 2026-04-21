@@ -62,7 +62,9 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
 
     if (connection === 'close') {
       currentSock = null
-      const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode
+      const err = lastDisconnect?.error as Boom
+      const statusCode = err?.output?.statusCode
+      log(`WhatsApp: close — code=${statusCode} message="${err?.message}" data=${JSON.stringify(err?.data ?? null)}`, 'warn')
       const loggedOut = statusCode === DisconnectReason.loggedOut
 
       if (loggedOut) {
@@ -70,7 +72,7 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
         await rm(config.authStatePath, { recursive: true, force: true })
         await connect(onMessage, 1000)
       } else {
-        log(`WhatsApp: desconectado (${statusCode}). Reconectando em ${backoffMs}ms.`, 'warn')
+        log(`WhatsApp: reconectando em ${backoffMs}ms.`, 'warn')
         await new Promise((r) => setTimeout(r, backoffMs))
         await connect(onMessage, Math.min(backoffMs * 2, 30_000))
       }
