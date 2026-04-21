@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
-    "@whiskeysockets/baileys": "^6.7.18",
+    "baileys": "7.0.0-rc.9",
     "axios": "^1.6.7",
     "bullmq": "^4.15.2",
     "dotenv": "^16.3.1",
