@@ -13,11 +13,17 @@ services:
     env_file:
       - ./.env
     environment:
-        REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - whatsapp_auth:/app/auth_state
     depends_on:
       - redis
     networks:
       - bot-net
+
+volumes:
+  whatsapp_auth:
+
 networks:
   bot-net:
     name: bot-net
