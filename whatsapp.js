@@ -17,6 +17,7 @@ function ensureDirs() {
 
 async function clearChromeLocks() {
     const targets = [
+        join(process.cwd(), config.userDataDir),
         join(process.cwd(), config.userDataDir, "Default"),
         join(process.cwd(), config.sessionPath, "Default"),
     ];
@@ -25,6 +26,7 @@ async function clearChromeLocks() {
             try {
                 const f = join(base, fname);
                 await fs.rm(f, { force: true });
+                log(`Lock removido: ${f}`, "info");
             } catch (_) {}
         }
     }
