@@ -1,10 +1,14 @@
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
 import WhatsappWebPkg from "whatsapp-web.js";
 import QrCodeTerminal from "qrcode-terminal";
 import { promises as fs } from "fs";
 import { config } from "./config.js";
 import { log } from "./logger.js";
+
+const execAsync = promisify(exec);
 
 const { Client, LocalAuth } = WhatsappWebPkg;
 
@@ -13,6 +17,14 @@ function ensureDirs() {
     if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
     const userDataDir = join(process.cwd(), config.userDataDir);
     if (!existsSync(userDataDir)) mkdirSync(userDataDir, { recursive: true });
+}
+
+async function killExistingChrome() {
+    try {
+        await execAsync("pkill -f chromium || true");
+        log("Processos Chromium anteriores encerrados.", "info");
+        await new Promise((r) => setTimeout(r, 800));
+    } catch (_) {}
 }
 
 async function clearChromeLocks() {
@@ -34,6 +46,7 @@ async function clearChromeLocks() {
 
 export async function createClient() {
     ensureDirs();
+    await killExistingChrome();
     await clearChromeLocks();
 
     const client = new Client({
