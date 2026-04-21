@@ -48,16 +48,28 @@ export async function createClient() {
     client.on("authenticated", () => {
         log("Autenticado com sucesso! Aguardando carregamento do WhatsApp Web...", "success");
 
-        if (client.pupPage) {
-            client.pupPage.on("error", (err) => {
-                log(`Chrome page error: ${err.message}`, "error");
+        const page = client.pupPage;
+        if (page) {
+            page.on("error", (err) => log(`Chrome page error: ${err.message}`, "error"));
+            page.on("pageerror", (err) => log(`Chrome JS pageerror: ${err.message}`, "error"));
+            page.on("crash", () => log("Chrome page CRASHED após autenticação!", "error"));
+            page.on("console", (msg) => {
+                if (msg.type() === "error") log(`Chrome console error: ${msg.text()}`, "warn");
             });
-            client.pupPage.on("pageerror", (err) => {
-                log(`Chrome JS pageerror: ${err.message}`, "error");
-            });
-            client.pupPage.on("crash", () => {
-                log("Chrome page CRASHED após autenticação!", "error");
-            });
+
+            setTimeout(async () => {
+                try {
+                    const url = page.url();
+                    const title = await page.title();
+                    const bodySnippet = await page.evaluate(() =>
+                        document.body?.innerText?.slice(0, 300)?.replace(/\n/g, " ") || "(vazio)"
+                    );
+                    log(`[diagnóstico] URL: ${url} | título: ${title}`, "info");
+                    log(`[diagnóstico] corpo: ${bodySnippet}`, "info");
+                } catch (err) {
+                    log(`[diagnóstico] erro ao inspecionar página: ${err.message}`, "warn");
+                }
+            }, 10_000);
         }
     });
 
