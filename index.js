@@ -1,6 +1,10 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
 import { log } from "./logger.js";
+
+process.on("unhandledRejection", (reason) => {
+    log(`Unhandled rejection: ${reason?.message || reason}`, "error");
+});
 import { redisConnection, sendQueueName } from "./queues.js";
 import { createClient } from "./whatsapp.js";
 import { publishIncoming } from "./incomingPublisher.js";

@@ -16,7 +16,16 @@ export class BackendSessionStore {
 
     async save({ session }) {
         const zipPath = `${session}.zip`;
-        const data = await fs.readFile(zipPath);
+        let data;
+        try {
+            data = await fs.readFile(zipPath);
+        } catch (err) {
+            if (err.code === "ENOENT") {
+                log(`Zip da sessão não encontrado em ${zipPath} — provável race condition, ignorando`, "warn");
+                return;
+            }
+            throw err;
+        }
         await axios.put(`${baseUrl}/whatsapp-session/${encodeURIComponent(session)}`, data, {
             headers: { "Content-Type": "application/octet-stream" },
             maxBodyLength: Infinity,
