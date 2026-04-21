@@ -64,10 +64,31 @@ export async function createClient() {
         log("----------------------------------------", "info");
     });
 
-    client.on("ready", () => {
-        log("Cliente WhatsApp conectado!", "success");
+    client.on("loading_screen", (percent, message) => {
+        log(`Carregando WhatsApp Web: ${percent}% — ${message}`, "info");
     });
 
+    client.on("authenticated", () => {
+        log("Autenticado com sucesso! Sessão salva localmente.", "success");
+    });
+
+    client.on("auth_failure", (msg) => {
+        log(`Falha na autenticação: ${msg}`, "error");
+    });
+
+    client.on("ready", () => {
+        log("Cliente WhatsApp pronto e conectado!", "success");
+    });
+
+    client.on("change_state", (state) => {
+        log(`Estado da conexão mudou: ${state}`, "info");
+    });
+
+    client.on("disconnected", (reason) => {
+        log(`Cliente desconectado. Motivo: ${reason}`, "warn");
+    });
+
+    log("Inicializando cliente WhatsApp (abrindo Chrome)...", "info");
     await client.initialize();
     return client;
 }
