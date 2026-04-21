@@ -71,6 +71,14 @@ export async function createClient() {
     });
 
     log("Inicializando cliente WhatsApp...", "info");
+
+    const readyPromise = new Promise((resolve, reject) => {
+        client.once("ready", resolve);
+        client.once("auth_failure", (msg) => reject(new Error(`auth_failure: ${msg}`)));
+    });
+
     await client.initialize();
+    await readyPromise;
+
     return client;
 }
