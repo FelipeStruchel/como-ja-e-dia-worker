@@ -86,6 +86,21 @@ export async function processSendJob({ client, job }) {
 
     if (!client.pupPage) throw new Error("WhatsApp não está pronto");
 
+    log(`Tentando enviar job ${job.id} para groupId: ${groupId}`, "info");
+
+    let chat;
+    try {
+        chat = await client.getChatById(groupId);
+    } catch (err) {
+        log(`getChatById falhou para ${groupId}: ${err.message}`, "error");
+    }
+    if (!chat) {
+        const allChats = await client.getChats();
+        const groups = allChats.filter((c) => c.isGroup).map((c) => `${c.name} → ${c.id._serialized}`);
+        log(`Grupo não encontrado: ${groupId}. Grupos disponíveis:\n${groups.join("\n") || "(nenhum)"}`, "error");
+        throw new Error(`Grupo não encontrado no WhatsApp: ${groupId}`);
+    }
+
     const { payload, opts = {} } = await buildMessage(data);
     if (data.replyTo) opts.quotedMessageId = data.replyTo;
     if (Array.isArray(data.mentions) && data.mentions.length) {

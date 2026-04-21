@@ -68,8 +68,30 @@ export async function createClient() {
         log(`Carregando WhatsApp Web: ${percent}% — ${message}`, "info");
     });
 
+    let readyReceived = false;
+
     client.on("authenticated", () => {
         log("Autenticado com sucesso! Sessão salva localmente.", "success");
+
+        if (client.pupPage) {
+            client.pupPage.on("error", (err) => {
+                log(`Chrome page error: ${err.message}`, "error");
+            });
+            client.pupPage.on("pageerror", (err) => {
+                log(`Chrome JS pageerror: ${err.message}`, "error");
+            });
+            client.pupPage.on("crash", () => {
+                log("Chrome page CRASHED após autenticação!", "error");
+            });
+        } else {
+            log("pupPage não disponível após authenticated (pode indicar múltiplas instâncias)", "warn");
+        }
+
+        setTimeout(() => {
+            if (!readyReceived) {
+                log("TIMEOUT: evento ready não disparou em 90s após authenticated — Chrome pode estar travado ou crashado", "error");
+            }
+        }, 90_000);
     });
 
     client.on("auth_failure", (msg) => {
@@ -77,6 +99,7 @@ export async function createClient() {
     });
 
     client.on("ready", () => {
+        readyReceived = true;
         log("Cliente WhatsApp pronto e conectado!", "success");
     });
 
