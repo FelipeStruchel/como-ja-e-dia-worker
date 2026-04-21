@@ -1,75 +1,19 @@
-import { existsSync, mkdirSync } from "fs";
-import { join } from "path";
 import WhatsappWebPkg from "whatsapp-web.js";
 import QrCodeTerminal from "qrcode-terminal";
-import { promises as fs } from "fs";
-import { config } from "./config.js";
 import { log } from "./logger.js";
+import { BackendSessionStore } from "./sessionStore.js";
 
-const { Client, LocalAuth } = WhatsappWebPkg;
-
-function ensureDirs() {
-    const sessionDir = join(process.cwd(), config.sessionPath);
-    if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
-    const userDataDir = join(process.cwd(), config.userDataDir);
-    if (!existsSync(userDataDir)) mkdirSync(userDataDir, { recursive: true });
-}
-
-async function killExistingChrome() {
-    log("Verificando processos Chromium via /proc...", "info");
-    let killed = 0;
-    try {
-        const dirs = await fs.readdir("/proc");
-        for (const dir of dirs) {
-            if (!/^\d+$/.test(dir)) continue;
-            try {
-                const cmdline = await fs.readFile(`/proc/${dir}/cmdline`, "utf8");
-                if (cmdline.includes("chromium")) {
-                    const pid = parseInt(dir, 10);
-                    if (pid === process.pid) continue;
-                    process.kill(pid, "SIGKILL");
-                    killed++;
-                    log(`Chromium PID ${pid} encerrado.`, "info");
-                }
-            } catch (_) {}
-        }
-    } catch (err) {
-        log(`Erro ao varrer /proc: ${err.message}`, "warn");
-    }
-    if (killed === 0) log("Nenhum processo Chromium encontrado.", "info");
-    await new Promise((r) => setTimeout(r, 800));
-}
-
-async function clearChromeLocks() {
-    // LocalAuth seta o userDataDir do Chrome para sessionPath/clientId (ex: .wwebjs_auth/whatsapp-worker)
-    // Precisamos limpar os locks nesse path e nos paths legados
-    const localAuthDir = join(process.cwd(), config.sessionPath, "whatsapp-worker");
-    const targets = [
-        localAuthDir,
-        join(localAuthDir, "Default"),
-        join(process.cwd(), config.userDataDir),
-        join(process.cwd(), config.userDataDir, "Default"),
-    ];
-    for (const base of targets) {
-        for (const fname of ["SingletonLock", "SingletonCookie", "SingletonSocket"]) {
-            try {
-                const f = join(base, fname);
-                await fs.rm(f, { force: true });
-                log(`Lock removido: ${f}`, "info");
-            } catch (_) {}
-        }
-    }
-}
+const { Client, RemoteAuth } = WhatsappWebPkg;
 
 export async function createClient() {
-    ensureDirs();
-    await killExistingChrome();
-    await clearChromeLocks();
+    const store = new BackendSessionStore();
 
     const client = new Client({
-        authStrategy: new LocalAuth({
+        authStrategy: new RemoteAuth({
             clientId: "whatsapp-worker",
-            dataPath: join(process.cwd(), config.sessionPath),
+            dataPath: "/tmp",
+            store,
+            backupSyncIntervalMs: 300_000,
         }),
         puppeteer: {
             headless: true,
@@ -102,31 +46,15 @@ export async function createClient() {
     let readyReceived = false;
 
     client.on("authenticated", () => {
-        log("Autenticado com sucesso! Sessão salva localmente.", "success");
-
-        if (client.pupPage) {
-            client.pupPage.on("error", (err) => {
-                log(`Chrome page error: ${err.message}`, "error");
-            });
-            client.pupPage.on("pageerror", (err) => {
-                log(`Chrome JS pageerror: ${err.message}`, "error");
-            });
-            client.pupPage.on("crash", () => {
-                log("Chrome page CRASHED após autenticação!", "error");
-            });
-        } else {
-            log("pupPage não disponível após authenticated (pode indicar múltiplas instâncias)", "warn");
-        }
-
-        setTimeout(() => {
-            if (!readyReceived) {
-                log("TIMEOUT: evento ready não disparou em 90s após authenticated — Chrome pode estar travado ou crashado", "error");
-            }
-        }, 90_000);
+        log("Autenticado com sucesso!", "success");
     });
 
     client.on("auth_failure", (msg) => {
         log(`Falha na autenticação: ${msg}`, "error");
+    });
+
+    client.on("remote_session_saved", () => {
+        log("Sessão salva no banco com sucesso.", "success");
     });
 
     client.on("ready", () => {
@@ -142,7 +70,7 @@ export async function createClient() {
         log(`Cliente desconectado. Motivo: ${reason}`, "warn");
     });
 
-    log("Inicializando cliente WhatsApp (abrindo Chrome)...", "info");
+    log("Inicializando cliente WhatsApp...", "info");
     await client.initialize();
     return client;
 }

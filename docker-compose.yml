@@ -18,15 +18,7 @@ services:
       - redis
     networks:
       - bot-net
-    volumes:
-      - worker-session:/app/.wwebjs_auth
-      - worker-chrome:/app/chrome-data
-
 networks:
   bot-net:
     name: bot-net
     external: true
-
-volumes:
-  worker-session:
-  worker-chrome:
