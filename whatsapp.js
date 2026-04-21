@@ -46,7 +46,19 @@ export async function createClient() {
     let readyReceived = false;
 
     client.on("authenticated", () => {
-        log("Autenticado com sucesso!", "success");
+        log("Autenticado com sucesso! Aguardando carregamento do WhatsApp Web...", "success");
+
+        if (client.pupPage) {
+            client.pupPage.on("error", (err) => {
+                log(`Chrome page error: ${err.message}`, "error");
+            });
+            client.pupPage.on("pageerror", (err) => {
+                log(`Chrome JS pageerror: ${err.message}`, "error");
+            });
+            client.pupPage.on("crash", () => {
+                log("Chrome page CRASHED após autenticação!", "error");
+            });
+        }
     });
 
     client.on("auth_failure", (msg) => {
@@ -72,9 +84,14 @@ export async function createClient() {
 
     log("Inicializando cliente WhatsApp...", "info");
 
+    const READY_TIMEOUT_MS = 3 * 60 * 1000;
     const readyPromise = new Promise((resolve, reject) => {
-        client.once("ready", resolve);
-        client.once("auth_failure", (msg) => reject(new Error(`auth_failure: ${msg}`)));
+        const timer = setTimeout(() => {
+            reject(new Error(`Timeout: evento ready não disparou em ${READY_TIMEOUT_MS / 1000}s — Chrome pode ter travado`));
+        }, READY_TIMEOUT_MS);
+
+        client.once("ready", () => { clearTimeout(timer); resolve(); });
+        client.once("auth_failure", (msg) => { clearTimeout(timer); reject(new Error(`auth_failure: ${msg}`)); });
     });
 
     await client.initialize();
