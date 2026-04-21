@@ -41,10 +41,14 @@ async function killExistingChrome() {
 }
 
 async function clearChromeLocks() {
+    // LocalAuth seta o userDataDir do Chrome para sessionPath/clientId (ex: .wwebjs_auth/whatsapp-worker)
+    // Precisamos limpar os locks nesse path e nos paths legados
+    const localAuthDir = join(process.cwd(), config.sessionPath, "whatsapp-worker");
     const targets = [
+        localAuthDir,
+        join(localAuthDir, "Default"),
         join(process.cwd(), config.userDataDir),
         join(process.cwd(), config.userDataDir, "Default"),
-        join(process.cwd(), config.sessionPath, "Default"),
     ];
     for (const base of targets) {
         for (const fname of ["SingletonLock", "SingletonCookie", "SingletonSocket"]) {
@@ -74,7 +78,6 @@ export async function createClient() {
                 process.env.PUPPETEER_EXECUTABLE_PATH ||
                 "/usr/bin/chromium-browser",
             args: [
-                `--user-data-dir=${join(process.cwd(), config.userDataDir)}`,
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",
