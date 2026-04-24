@@ -71,8 +71,20 @@ export function startContextWorker(): Worker {
     { connection: redisConnection },
   )
 
+  worker.on('active', (job) => {
+    log(`Job de contexto ${job.id} iniciado para ${(job.data as { groupId?: string }).groupId}`, 'info')
+  })
+
   worker.on('failed', (job, err) => {
     log(`Job de contexto ${job?.id} falhou: ${err.message}`, 'error')
+  })
+
+  worker.on('error', (err) => {
+    log(`Worker de contexto erro: ${err.message}`, 'error')
+  })
+
+  worker.on('stalled', (jobId) => {
+    log(`Job de contexto ${jobId} ficou stalled`, 'warn')
   })
 
   return worker
