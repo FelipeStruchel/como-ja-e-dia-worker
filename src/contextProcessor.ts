@@ -55,7 +55,7 @@ async function fetchContext(groupId: string): Promise<void> {
   }
 
   await axios.post(`${config.backendUrl}/context/ingest`, payload, {
-    headers: { 'x-context-token': config.logIngestToken },
+    headers: { 'x-context-token': config.groupContextToken },
   })
   log(`context: enviado ${members.length} membros do grupo ${groupId}`, 'info')
 }
