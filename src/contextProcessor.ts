@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq'
 import axios from 'axios'
 import { getSocket } from './client.js'
+import { resolveContactName } from './contactStore.js'
 import { config } from './config.js'
 import { redisConnection } from './queues.js'
 import { log } from './logger.js'
@@ -34,7 +35,7 @@ async function fetchContext(groupId: string): Promise<void> {
     }
 
     const number = idUser(jid)
-    const name = (p as unknown as { notify?: string }).notify ?? number
+    const name = resolveContactName(jid) ?? number
     members.push({
       id: jid,
       name,

@@ -14,6 +14,7 @@ import axios from 'axios'
 import { rm } from 'fs/promises'
 import { config } from './config.js'
 import { log } from './logger.js'
+import { bindContactStore } from './contactStore.js'
 
 export type IncomingHandler = (sock: WASocket, msg: WAMessage) => Promise<void>
 
@@ -51,6 +52,7 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
   })
 
   currentSock = sock
+  bindContactStore(sock)
   sock.ev.on('creds.update', saveCreds)
 
   sock.ev.on('connection.update', async (update) => {
