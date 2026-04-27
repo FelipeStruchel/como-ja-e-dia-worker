@@ -10,4 +10,7 @@ export const config = {
   authStatePath: process.env.AUTH_STATE_PATH ?? '/app/auth_state',
   logIngestToken: process.env.LOG_INGEST_TOKEN ?? '',
   logIngestUrl: process.env.LOG_INGEST_URL ?? '',
+  dropCaptureToken: process.env.DROP_CAPTURE_TOKEN ?? '',
+  dropBotReaction: process.env.DROP_BOT_REACTION ?? '✨',
+  dropActiveTtlSec: parseInt(process.env.DROP_ACTIVE_TTL_SEC ?? '900', 10),
 } as const

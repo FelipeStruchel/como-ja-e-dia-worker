@@ -15,6 +15,7 @@ import { rm } from 'fs/promises'
 import { config } from './config.js'
 import { log } from './logger.js'
 import { bindContactStore } from './contactStore.js'
+import { handleReaction } from './reactionHandler.js'
 
 export type IncomingHandler = (sock: WASocket, msg: WAMessage) => Promise<void>
 
@@ -92,6 +93,16 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
         await onMessage(sock, msg)
       } catch (err) {
         log(`Erro ao processar mensagem recebida: ${(err as Error).message}`, 'error')
+      }
+    }
+  })
+
+  sock.ev.on('messages.reaction', async (reactions) => {
+    for (const entry of reactions) {
+      try {
+        await handleReaction(sock, entry)
+      } catch (err) {
+        log(`Erro ao processar reação: ${(err as Error).message}`, 'error')
       }
     }
   })
