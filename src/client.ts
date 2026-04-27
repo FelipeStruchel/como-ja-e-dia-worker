@@ -86,9 +86,23 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
   })
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return
     for (const msg of messages) {
       if (msg.key.fromMe) continue
+
+      // Reações chegam via messages.upsert no Baileys 7.x
+      if (msg.message?.reactionMessage) {
+        try {
+          await handleReaction(sock, {
+            key: msg.key,
+            reaction: msg.message.reactionMessage,
+          })
+        } catch (err) {
+          log(`Erro ao processar reação: ${(err as Error).message}`, 'error')
+        }
+        continue
+      }
+
+      if (type !== 'notify') continue
       try {
         await onMessage(sock, msg)
       } catch (err) {
