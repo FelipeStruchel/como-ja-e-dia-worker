@@ -1,5 +1,6 @@
 // como-ja-e-dia-worker/src/reactionHandler.ts
 import axios from 'axios'
+import type { AxiosError } from 'axios'
 import type { WASocket, proto } from 'baileys'
 import { getRedis } from './redis.js'
 import { config } from './config.js'
@@ -27,11 +28,20 @@ export async function handleReaction(
   if (entry.key.fromMe) return
 
   const reactorJid = entry.key.participant ?? entry.key.remoteJid ?? ''
+  if (!reactorJid || reactorJid.endsWith('@g.us')) {
+    log('reaction missing participant JID', 'warn')
+    return
+  }
+
   const reactedMessageId = entry.reaction.key?.id
   const reactionText = entry.reaction.text
 
   // Ignora remoção de reação (text vazio = remoção)
-  if (!reactedMessageId || !reactionText) return
+  if (!reactionText) return
+  if (!reactedMessageId) {
+    log('reaction missing key.id', 'warn')
+    return
+  }
 
   // Ignora reação do bot pelo JID
   const botJid = sock.user?.id
@@ -70,8 +80,8 @@ export async function handleReaction(
     )
     log(`Captura registrada: ${reactorJid} → drop ${active.dropId}`, 'info')
   } catch (err) {
-    const status = (err as { response?: { status?: number } })?.response?.status
-    if (status === 409) {
+    const axiosErr = err as AxiosError
+    if (axiosErr.response?.status === 409) {
       log(`Drop ${active.dropId} já foi capturado por outro (race no backend)`, 'info')
     } else {
       log(`Falha ao registrar captura: ${(err as Error).message}`, 'error')
