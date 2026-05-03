@@ -11,6 +11,7 @@ export interface IncomingPayload {
   fromMe: boolean
   isGroup: boolean
   participants: string[]
+  mentionedJids: string[]
 }
 
 export function extractBody(msg: WAMessage): string {
@@ -49,6 +50,9 @@ export async function publishIncoming(sock: WASocket, msg: WAMessage): Promise<v
     const body = extractBody(msg)
     const participants = isGroup ? await fetchParticipants(sock, from) : []
 
+    const mentionedJids: string[] =
+      msg.message?.extendedTextMessage?.contextInfo?.mentionedJid ?? []
+
     const payload: IncomingPayload = {
       id: msg.key.id ?? '',
       from,
@@ -58,6 +62,7 @@ export async function publishIncoming(sock: WASocket, msg: WAMessage): Promise<v
       fromMe: msg.key.fromMe ?? false,
       isGroup,
       participants,
+      mentionedJids,
     }
 
     await incomingQueue.add('incoming', payload, {
