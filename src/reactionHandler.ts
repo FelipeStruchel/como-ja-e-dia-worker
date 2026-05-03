@@ -15,6 +15,9 @@ interface ActiveDrop {
   dropId: string
   pokemonId: number
   messageId?: string
+  spawnedBy?: string
+  spawnerUnlocksAt?: number
+  expiresAt?: number
 }
 
 export async function handleReaction(
@@ -65,6 +68,31 @@ export async function handleReaction(
   // Se a reação é em outra mensagem (não o drop), restaura e ignora
   if (active.messageId !== reactedMessageId) {
     await redis.set(activeKey, raw, 'EX', config.dropActiveTtlSec)
+    return
+  }
+
+  // Spawner lockout: who forced the spawn cannot capture for 5 minutes
+  if (
+    active.spawnedBy &&
+    active.spawnerUnlocksAt &&
+    active.expiresAt &&
+    active.spawnedBy === reactorJid &&
+    Date.now() < active.spawnerUnlocksAt
+  ) {
+    const remainingTtl = Math.max(1, Math.ceil((active.expiresAt - Date.now()) / 1000))
+    await redis.set(activeKey, raw, 'EX', remainingTtl)
+    try {
+      await axios.post(
+        `${config.backendUrl}/drops/spawner-blocked`,
+        { groupId, reactorJid, unlocksAt: active.spawnerUnlocksAt },
+        {
+          headers: { 'x-drop-token': config.dropCaptureToken },
+          timeout: 10_000,
+        }
+      )
+    } catch (err) {
+      log(`Falha ao notificar bloqueio do spawner: ${(err as Error).message}`, 'error')
+    }
     return
   }
 

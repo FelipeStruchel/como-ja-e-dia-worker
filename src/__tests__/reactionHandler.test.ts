@@ -118,4 +118,111 @@ describe('handleReaction', () => {
     ;(axios.post as ReturnType<typeof vi.fn>).mockRejectedValue(err)
     await expect(handleReaction(mockSock, validEntry)).resolves.toBeUndefined()
   })
+
+  describe('forcespawn spawner lockout', () => {
+    const spawnerJid = 'user1@s.whatsapp.net' // same as validEntry.key.participant
+    const now = Date.now()
+    const forceDrop = {
+      dropId: 'drop-force-1',
+      pokemonId: 25,
+      messageId: 'msg-abc-123',
+      spawnedBy: spawnerJid,
+      spawnerUnlocksAt: now + 300_000,
+      expiresAt: now + 900_000,
+    }
+
+    it('restores key and calls spawner-blocked when spawner reacts during lockout', async () => {
+      mockRedis.getdel.mockResolvedValue(JSON.stringify(forceDrop))
+      ;(axios.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { ok: true } })
+
+      await handleReaction(mockSock, validEntry)
+
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        `drop:active:${groupId}`,
+        JSON.stringify(forceDrop),
+        'EX',
+        expect.any(Number)
+      )
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://backend:3000/drops/spawner-blocked',
+        { groupId, reactorJid: spawnerJid, unlocksAt: forceDrop.spawnerUnlocksAt },
+        expect.objectContaining({ headers: { 'x-drop-token': 'test-token' } })
+      )
+      // Must NOT call /drops/capture
+      expect(axios.post).not.toHaveBeenCalledWith(
+        expect.stringContaining('/drops/capture'),
+        expect.anything(),
+        expect.anything()
+      )
+    })
+
+    it('restored TTL is positive and based on expiresAt', async () => {
+      const snapNow = Date.now()
+      mockRedis.getdel.mockResolvedValue(JSON.stringify({
+        ...forceDrop,
+        expiresAt: snapNow + 600_000,
+      }))
+      ;(axios.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { ok: true } })
+
+      await handleReaction(mockSock, validEntry)
+
+      const setCall = (mockRedis.set as ReturnType<typeof vi.fn>).mock.calls[0]
+      const ttl = setCall[3]
+      expect(ttl).toBeGreaterThan(0)
+      expect(ttl).toBeLessThanOrEqual(600)
+    })
+
+    it('allows capture after spawnerUnlocksAt has passed', async () => {
+      const expiredDrop = {
+        ...forceDrop,
+        spawnerUnlocksAt: Date.now() - 1, // already expired
+      }
+      mockRedis.getdel.mockResolvedValue(JSON.stringify(expiredDrop))
+      ;(axios.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { ok: true } })
+
+      await handleReaction(mockSock, validEntry)
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://backend:3000/drops/capture',
+        expect.objectContaining({ dropId: 'drop-force-1' }),
+        expect.anything()
+      )
+    })
+
+    it('allows non-spawner to capture a forcespawn drop immediately', async () => {
+      const otherReactor = {
+        ...validEntry,
+        key: { ...validEntry.key, participant: 'other-user@s.whatsapp.net' },
+      }
+      mockRedis.getdel.mockResolvedValue(JSON.stringify(forceDrop))
+      ;(axios.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { ok: true } })
+
+      await handleReaction(mockSock, otherReactor)
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://backend:3000/drops/capture',
+        expect.objectContaining({ capturedBy: 'other-user@s.whatsapp.net' }),
+        expect.anything()
+      )
+    })
+
+    it('does not call spawner-blocked for a normal drop without spawnedBy', async () => {
+      const normalDrop = { dropId: 'drop-1', pokemonId: 25, messageId: 'msg-abc-123', expiresAt: Date.now() + 900_000 }
+      mockRedis.getdel.mockResolvedValue(JSON.stringify(normalDrop))
+      ;(axios.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { ok: true } })
+
+      await handleReaction(mockSock, validEntry)
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://backend:3000/drops/capture',
+        expect.anything(),
+        expect.anything()
+      )
+      expect(axios.post).not.toHaveBeenCalledWith(
+        expect.stringContaining('spawner-blocked'),
+        expect.anything(),
+        expect.anything()
+      )
+    })
+  })
 })
