@@ -50,7 +50,7 @@ async function cleanupMedia(cleanup: NonNullable<SendJobData['cleanup']>): Promi
   const scope =
     cleanup.scope === 'trigger' || cleanup.scope === 'media_triggers' ? 'trigger' : 'media'
   const url = `${mediaBase}/media/${cleanup.type}/${cleanup.filename}${scope === 'trigger' ? '?scope=trigger' : ''}`
-  await axios.delete(url)
+  await axios.delete(url, { headers: { 'x-worker-secret': config.workerApiSecret } })
   log(`Cleanup de mídia concluído: ${cleanup.filename}`, 'info')
 }
 

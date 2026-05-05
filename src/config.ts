@@ -11,6 +11,7 @@ export const config = {
   logIngestToken: process.env.LOG_INGEST_TOKEN ?? '',
   logIngestUrl: process.env.LOG_INGEST_URL ?? '',
   dropCaptureToken: process.env.DROP_CAPTURE_TOKEN ?? '',
+  workerApiSecret: process.env.WORKER_API_SECRET ?? '',
   dropBotReaction: process.env.DROP_BOT_REACTION ?? '✨',
   dropActiveTtlSec: parseInt(process.env.DROP_ACTIVE_TTL_SEC ?? '900', 10),
 } as const
