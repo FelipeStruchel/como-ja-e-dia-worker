@@ -9,7 +9,7 @@ import { log } from './logger.js'
 
 interface SendJobData {
   groupId?: string
-  type: 'text' | 'image' | 'video' | 'pokemon_drop'
+  type: 'text' | 'image' | 'video' | 'pokemon_drop' | 'miru_drop'
   content: string
   caption?: string
   dropId?: string
@@ -114,6 +114,34 @@ export function startSendWorker(): Worker {
           await sock.sendMessage(groupId, {
             react: { text: config.dropBotReaction, key: sentMsg.key },
           } as Parameters<typeof sock.sendMessage>[1])
+        }
+      } else if (data.type === 'miru_drop') {
+        const { buffer, mimeType } = await downloadMediaToBuffer(resolveUrl(data.content))
+        const sentMsg = await sock.sendMessage(groupId, {
+          image: buffer,
+          mimetype: mimeType,
+          ...(data.caption ? { caption: data.caption } : {}),
+        } as Parameters<typeof sock.sendMessage>[1])
+
+        if (sentMsg?.key?.id && data.dropId) {
+          const redis = getRedis()
+          const dropKey = `miru:drop:active:${groupId}:${data.dropId}`
+          const raw = await redis.get(dropKey)
+          if (raw) {
+            const ttl = await redis.ttl(dropKey)
+            const remaining = Math.max(ttl, 1)
+
+            const dropData = JSON.parse(raw)
+            dropData.messageId = sentMsg.key.id
+            await redis.set(dropKey, JSON.stringify(dropData), 'EX', remaining)
+
+            await redis.set(
+              `miru:msg:${groupId}:${sentMsg.key.id}`,
+              data.dropId,
+              'EX',
+              remaining,
+            )
+          }
         }
       } else {
         const { buffer, mimeType } = await downloadMediaToBuffer(resolveUrl(data.content))

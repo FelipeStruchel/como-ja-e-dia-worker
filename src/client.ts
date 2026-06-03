@@ -16,6 +16,7 @@ import { config } from './config.js'
 import { log } from './logger.js'
 import { bindContactStore } from './contactStore.js'
 import { handleReaction } from './reactionHandler.js'
+import { handleMiruReaction } from './miruReactionHandler.js'
 
 export type IncomingHandler = (sock: WASocket, msg: WAMessage) => Promise<void>
 
@@ -92,12 +93,14 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
       // Reações chegam via messages.upsert no Baileys 7.x
       if (msg.message?.reactionMessage) {
         try {
-          await handleReaction(sock, {
-            key: msg.key,
-            reaction: msg.message.reactionMessage,
-          })
+          await handleReaction(sock, { key: msg.key, reaction: msg.message.reactionMessage })
         } catch (err) {
-          log(`Erro ao processar reação: ${(err as Error).message}`, 'error')
+          log(`Erro ao processar reação Pokémon: ${(err as Error).message}`, 'error')
+        }
+        try {
+          await handleMiruReaction(sock, { key: msg.key, reaction: msg.message.reactionMessage })
+        } catch (err) {
+          log(`Erro ao processar reação Miru: ${(err as Error).message}`, 'error')
         }
         continue
       }
@@ -116,7 +119,12 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
       try {
         await handleReaction(sock, entry)
       } catch (err) {
-        log(`Erro ao processar reação: ${(err as Error).message}`, 'error')
+        log(`Erro ao processar reação Pokémon: ${(err as Error).message}`, 'error')
+      }
+      try {
+        await handleMiruReaction(sock, entry)
+      } catch (err) {
+        log(`Erro ao processar reação Miru: ${(err as Error).message}`, 'error')
       }
     }
   })
