@@ -25,7 +25,7 @@ export async function handleJogoCommand(
     const status = (err as any)?.response?.status
     if (status === 404) {
       isNew = true
-      const result = await sock.groupCreate('Miru 🎮', [authorJid])
+      const result = await sock.groupCreate('Miru 🎮', [])
       gameGroupId = result.id
 
       try {
