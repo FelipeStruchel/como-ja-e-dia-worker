@@ -62,20 +62,24 @@ export async function handleVincularCommand(
   inviteLink: string,
 ): Promise<void> {
   // Only group admins or MIRU_ADMINS can link groups
-  if (!config.miruAdmins.has(authorJid)) {
-    try {
-      const meta = await sock.groupMetadata(mainGroupId)
-      const participant = meta.participants.find((p) => p.id === authorJid)
-      const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin'
-      if (!isAdmin) {
-        await sock.sendMessage(mainGroupId, { text: '❌ Apenas admins podem vincular grupos.' })
-        return
-      }
-    } catch (err) {
-      log(`Erro ao verificar admin no !vincular: ${(err as Error).message}`, 'error')
-      await sock.sendMessage(mainGroupId, { text: '❌ Não foi possível verificar suas permissões.' })
+  try {
+    const meta = await sock.groupMetadata(mainGroupId)
+    // Match by id, lid, or phoneNumber to handle LID vs JID format inconsistencies
+    const participant = meta.participants.find(
+      (p) => p.id === authorJid || p.lid === authorJid || p.phoneNumber === authorJid,
+    )
+    const isGroupAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin'
+    // Check MIRU_ADMINS against all known JID forms of the author
+    const candidateJids = new Set([authorJid, participant?.phoneNumber, participant?.lid].filter(Boolean) as string[])
+    const isMiruAdmin = [...candidateJids].some((jid) => config.miruAdmins.has(jid))
+    if (!isGroupAdmin && !isMiruAdmin) {
+      await sock.sendMessage(mainGroupId, { text: '❌ Apenas admins podem vincular grupos.' })
       return
     }
+  } catch (err) {
+    log(`Erro ao verificar permissão no !vincular: ${(err as Error).message}`, 'error')
+    await sock.sendMessage(mainGroupId, { text: '❌ Não foi possível verificar suas permissões.' })
+    return
   }
 
   // Check if already linked
