@@ -61,19 +61,21 @@ export async function handleVincularCommand(
   authorJid: string,
   inviteLink: string,
 ): Promise<void> {
-  // Only group admins can link groups
-  try {
-    const meta = await sock.groupMetadata(mainGroupId)
-    const participant = meta.participants.find((p) => p.id === authorJid)
-    const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin'
-    if (!isAdmin) {
-      await sock.sendMessage(mainGroupId, { text: '❌ Apenas admins podem vincular grupos.' })
+  // Only group admins or MIRU_ADMINS can link groups
+  if (!config.miruAdmins.has(authorJid)) {
+    try {
+      const meta = await sock.groupMetadata(mainGroupId)
+      const participant = meta.participants.find((p) => p.id === authorJid)
+      const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin'
+      if (!isAdmin) {
+        await sock.sendMessage(mainGroupId, { text: '❌ Apenas admins podem vincular grupos.' })
+        return
+      }
+    } catch (err) {
+      log(`Erro ao verificar admin no !vincular: ${(err as Error).message}`, 'error')
+      await sock.sendMessage(mainGroupId, { text: '❌ Não foi possível verificar suas permissões.' })
       return
     }
-  } catch (err) {
-    log(`Erro ao verificar admin no !vincular: ${(err as Error).message}`, 'error')
-    await sock.sendMessage(mainGroupId, { text: '❌ Não foi possível verificar suas permissões.' })
-    return
   }
 
   // Check if already linked

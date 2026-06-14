@@ -1,3 +1,13 @@
+function parseMiruAdmins(raw: string | undefined): Set<string> {
+  if (!raw) return new Set()
+  return new Set(
+    raw.split(',')
+      .map((s) => s.trim().replace(/^\+/, ''))
+      .filter(Boolean)
+      .map((n) => (n.includes('@') ? n : `${n}@s.whatsapp.net`)),
+  )
+}
+
 export const config = {
   redisHost: process.env.REDIS_HOST ?? 'redis',
   redisPort: parseInt(process.env.REDIS_PORT ?? '6379', 10),
@@ -14,4 +24,5 @@ export const config = {
   workerApiSecret: process.env.WORKER_API_SECRET ?? '',
   dropBotReaction: process.env.DROP_BOT_REACTION ?? '✨',
   dropActiveTtlSec: parseInt(process.env.DROP_ACTIVE_TTL_SEC ?? '900', 10),
-} as const
+  miruAdmins: parseMiruAdmins(process.env.MIRU_ADMINS),
+}
