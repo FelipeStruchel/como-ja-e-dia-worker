@@ -11,7 +11,7 @@ import { Boom } from '@hapi/boom'
 import pino from 'pino'
 import QRCode from 'qrcode'
 import axios from 'axios'
-import { rm } from 'fs/promises'
+import { rm, readdir } from 'fs/promises'
 import { config } from './config.js'
 import { log } from './logger.js'
 import { bindContactStore } from './contactStore.js'
@@ -76,7 +76,8 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
 
       if (loggedOut) {
         log('WhatsApp: logout detectado. Limpando auth state e aguardando novo QR.', 'warn')
-        await rm(config.authStatePath, { recursive: true, force: true })
+        const entries = await readdir(config.authStatePath)
+        await Promise.all(entries.map(e => rm(`${config.authStatePath}/${e}`, { recursive: true, force: true })))
         await connect(onMessage, 1000)
       } else {
         log(`WhatsApp: reconectando em ${backoffMs}ms.`, 'warn')
