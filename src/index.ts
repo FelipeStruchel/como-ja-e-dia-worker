@@ -2,6 +2,8 @@ import 'dotenv/config'
 import { startClient } from './client.js'
 import { startSendWorker } from './sendProcessor.js'
 import { startContextWorker } from './contextProcessor.js'
+import { startGroupDiscoveryWorker } from './groupDiscoveryProcessor.js'
+import { startMuteSchedulerWorker } from './muteSchedulerProcessor.js'
 import { publishIncoming } from './incomingPublisher.js'
 import { extractBody, extractAuthor } from './incomingPublisher.js'
 import { handleJogoCommand, handleVincularCommand } from './miruGroupHandler.js'
@@ -11,6 +13,8 @@ log('Worker iniciando...', 'info')
 
 startSendWorker()
 startContextWorker()
+startGroupDiscoveryWorker()
+startMuteSchedulerWorker()
 
 await startClient(async (sock, msg) => {
   const from = msg.key.remoteJid ?? ''
