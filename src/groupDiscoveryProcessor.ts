@@ -15,13 +15,14 @@ async function discoverAndReport(): Promise<void> {
     subject: meta.subject ?? '',
   }))
 
+  const muted = await muteAllGroups(sock)
+
   await axios.post(
     `${config.backendUrl}/groups/discover/ingest`,
     { groups },
-    { headers: { 'x-worker-secret': config.workerApiSecret } },
+    { headers: { 'x-worker-secret': config.workerApiSecret }, timeout: 10000 },
   )
 
-  const muted = await muteAllGroups(sock)
   log(`Descoberta de grupos: ${groups.length} grupos, ${muted} mutados`, 'info')
 }
 
@@ -37,6 +38,10 @@ export function startGroupDiscoveryWorker(): Worker {
 
   worker.on('failed', (job, err) => {
     log(`Job de descoberta de grupos ${job?.id} falhou: ${err.message}`, 'error')
+  })
+
+  worker.on('error', (err) => {
+    log(`Worker de descoberta de grupos erro: ${err.message}`, 'error')
   })
 
   return worker

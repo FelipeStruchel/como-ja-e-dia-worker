@@ -21,5 +21,9 @@ export function startMuteSchedulerWorker(): Worker {
     log(`Job de mute ${job?.id} falhou: ${err.message}`, 'error')
   })
 
+  worker.on('error', (err) => {
+    log(`Worker de mute erro: ${err.message}`, 'error')
+  })
+
   return worker
 }
