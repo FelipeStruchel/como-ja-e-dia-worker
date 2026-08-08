@@ -6,6 +6,7 @@ import { config } from './config.js'
 import { getRedis } from './redis.js'
 import { redisConnection, sendQueueName } from './queues.js'
 import { log } from './logger.js'
+import { getRememberedMessage } from './messageCache.js'
 
 interface SendJobData {
   groupId?: string
@@ -75,19 +76,33 @@ export function startSendWorker(): Worker {
         .map(normalizeJid)
         .filter((jid): jid is string => jid !== null)
 
+      // Only meaningful if the quoted message is still in the worker's
+      // recent-message cache (see messageCache.ts) — falls back to a plain
+      // (non-reply) send otherwise, same as before this existed.
+      const quoted = data.replyTo ? (getRememberedMessage(data.replyTo) ?? undefined) : undefined
+      const sendOptions = quoted ? { quoted } : undefined
+
       if (data.type === 'text') {
-        await sock.sendMessage(groupId, {
-          text: data.content,
-          ...(mentions.length ? { mentions } : {}),
-        })
+        await sock.sendMessage(
+          groupId,
+          {
+            text: data.content,
+            ...(mentions.length ? { mentions } : {}),
+          },
+          sendOptions,
+        )
       } else if (data.type === 'image') {
         const { buffer, mimeType } = await downloadMediaToBuffer(resolveUrl(data.content))
-        await sock.sendMessage(groupId, {
-          image: buffer,
-          mimetype: mimeType,
-          ...(data.caption ? { caption: data.caption } : {}),
-          ...(mentions.length ? { mentions } : {}),
-        } as any)
+        await sock.sendMessage(
+          groupId,
+          {
+            image: buffer,
+            mimetype: mimeType,
+            ...(data.caption ? { caption: data.caption } : {}),
+            ...(mentions.length ? { mentions } : {}),
+          } as any,
+          sendOptions,
+        )
       } else if (data.type === 'pokemon_drop') {
         const { buffer, mimeType } = await downloadMediaToBuffer(resolveUrl(data.content))
         const sentMsg = await sock.sendMessage(groupId, {
@@ -145,12 +160,16 @@ export function startSendWorker(): Worker {
         }
       } else {
         const { buffer, mimeType } = await downloadMediaToBuffer(resolveUrl(data.content))
-        await sock.sendMessage(groupId, {
-          video: buffer,
-          mimetype: mimeType,
-          ...(data.caption ? { caption: data.caption } : {}),
-          ...(mentions.length ? { mentions } : {}),
-        } as any)
+        await sock.sendMessage(
+          groupId,
+          {
+            video: buffer,
+            mimetype: mimeType,
+            ...(data.caption ? { caption: data.caption } : {}),
+            ...(mentions.length ? { mentions } : {}),
+          } as any,
+          sendOptions,
+        )
       }
 
       if (data.cleanup) {

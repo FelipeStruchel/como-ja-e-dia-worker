@@ -17,6 +17,7 @@ import { log } from './logger.js'
 import { bindContactStore } from './contactStore.js'
 import { handleReaction } from './reactionHandler.js'
 import { handleMiruReaction } from './miruReactionHandler.js'
+import { rememberMessage } from './messageCache.js'
 
 export type IncomingHandler = (sock: WASocket, msg: WAMessage) => Promise<void>
 
@@ -90,6 +91,10 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     for (const msg of messages) {
       if (msg.key.fromMe) continue
+
+      // Remembered so a later reply (trigger/command response with replyTo)
+      // can quote it — sendProcessor only gets the bare id across the queue.
+      rememberMessage(msg)
 
       // Reações chegam via messages.upsert no Baileys 7.x
       if (msg.message?.reactionMessage) {
