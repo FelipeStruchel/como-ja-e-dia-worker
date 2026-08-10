@@ -1,6 +1,7 @@
 import type { WASocket, WAMessage } from 'baileys'
 import { incomingQueue } from './queues.js'
 import { log } from './logger.js'
+import { getRecentChatHistory, type ChatHistoryEntry } from './chatHistory.js'
 
 export interface IncomingPayload {
   id: string
@@ -12,6 +13,7 @@ export interface IncomingPayload {
   isGroup: boolean
   participants: string[]
   mentionedJids: string[]
+  recentMessages: ChatHistoryEntry[]
 }
 
 export function extractBody(msg: WAMessage): string {
@@ -63,6 +65,7 @@ export async function publishIncoming(sock: WASocket, msg: WAMessage): Promise<v
       isGroup,
       participants,
       mentionedJids,
+      recentMessages: getRecentChatHistory(from),
     }
 
     await incomingQueue.add('incoming', payload, {

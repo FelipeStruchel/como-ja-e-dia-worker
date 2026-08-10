@@ -14,10 +14,12 @@ import axios from 'axios'
 import { rm, readdir } from 'fs/promises'
 import { config } from './config.js'
 import { log } from './logger.js'
-import { bindContactStore } from './contactStore.js'
+import { bindContactStore, resolveContactName } from './contactStore.js'
 import { handleReaction } from './reactionHandler.js'
 import { handleMiruReaction } from './miruReactionHandler.js'
 import { rememberMessage } from './messageCache.js'
+import { rememberChatHistory } from './chatHistory.js'
+import { extractBody, extractAuthor } from './incomingPublisher.js'
 
 export type IncomingHandler = (sock: WASocket, msg: WAMessage) => Promise<void>
 
@@ -95,6 +97,17 @@ async function connect(onMessage: IncomingHandler, backoffMs: number): Promise<v
       // Remembered so a later reply (trigger/command response with replyTo)
       // can quote it — sendProcessor only gets the bare id across the queue.
       rememberMessage(msg)
+
+      const body = extractBody(msg)
+      if (body) {
+        const author = extractAuthor(msg)
+        rememberChatHistory(msg.key.remoteJid ?? '', {
+          body,
+          type: 'chat',
+          senderName: resolveContactName(author) ?? author,
+          author,
+        })
+      }
 
       // Reações chegam via messages.upsert no Baileys 7.x
       if (msg.message?.reactionMessage) {
